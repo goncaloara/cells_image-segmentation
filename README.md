@@ -1,1 +1,3 @@
-Statistical Learning project.
+This work aims to develop and evaluate deep learning-based semantic image segmentation models to identify and delineate neurons in fluorescent microscopy images accurately. Precise segmentation of neurons is crucial in neuroscience and biomedical research, as it enables quantification and spatial analysis of neuronal populations involved in various biological processes.
+
+By leveraging the Fluorescent Neuronal Cells dataset, which provides high-resolution images and pixel-level ground-truth masks, the aim is to address these challenges and contribute to developing robust, generalizable computational tools for neuron detection and counting.
