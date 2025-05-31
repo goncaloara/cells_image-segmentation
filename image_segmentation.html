@@ -7575,7 +7575,7 @@ Designed for biomedical image segmentation, U-Net added skip connections, which 
 <p><img alt="title" src="u_net.png"/></p>
 <ul>
 <li><p><strong>SegNet</strong>
-  Introduced a structured encoder-decoder network using pooling indices to guide upsampling, helping retain spatial precision in segmentation masks.</p>
+Introduced a structured encoder-decoder network using pooling indices to guide upsampling, helping retain spatial precision in segmentation masks.</p>
 </li>
 <li><p><strong>Mask R-CNN</strong><br/>
 Extends Faster R-CNN for instance segmentation by adding a parallel branch to predict segmentation masks alongside object detection.</p>
@@ -7780,19 +7780,16 @@ $$<p><strong>Where:</strong></p>
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1><u>C. Methodology<u></u></u></h1>
 <h2 id="1.-Data-Preparation">1. Data Preparation<a class="anchor-link" href="#1.-Data-Preparation">¶</a></h2><ol>
-<li>The original images and masks are cut into smaller <strong>400x400 pixel</strong> sections, with at least <strong>100 pixels of overlap</strong> in both x and y directions.<ul>
-<li>This overlap ensures that cells near the edges are fully included in at least one section.</li>
-</ul>
-</li>
-<li>The masks are <strong>resized to 50x50 pixels</strong> to make processing faster.</li>
+<li>The raw images and masks are loaded and are cut into smaller <strong>400x400 pixel</strong></li>
 </ol>
-<p>The raw images and masks are loaded.
-For each mask:</p>
+<p>For each mask:</p>
 <ul>
 <li>A flood-fill operation is used to identify connected regions with intensity values greater than <strong>127</strong>.</li>
 <li>From these regions, the <strong>area, width, and height</strong> of each cell are calculated.</li>
 </ul>
-<p>The distribution of cell sizes is then analyzed.</p>
+<ol start="2">
+<li>The distribution of cell sizes is then analyzed.</li>
+</ol>
 <ul>
 <li>This helps choose a good <strong>overlap value</strong> for splitting the images.</li>
 <li>An overlap of <strong>100 pixels</strong> was selected, since it's larger than most cells.</li>
@@ -7870,7 +7867,7 @@ For each mask:</p>
 <ul>
 <li><strong>Dice Coefficient</strong></li>
 </ul>
-<p>The Dice coefficient is a common metric for evaluating image segmentation tasks. It measures the overlap between the predicted mask and the ground truth mask:
+<p>The Dice coefficient is a widely used metric for evaluating image segmentation tasks. It is particularly effective for class-imbalanced images, where traditional accuracy can be misleading. Unlike accuracy, which includes true negatives in its calculation, the Dice coefficient focuses on the overlap between the predicted mask and the ground truth mask (true positives), providing a more meaningful assessment of segmentation performance.
 $$
 \text{Dice} = \frac{2 \cdot |A \cap B|}{|A| + |B|}
 $$</p>
@@ -8750,7 +8747,6 @@ $$</p>
 </ul>
 <p>All these changes can be combined into a single 3x3 matrix. To apply multiple transformations, we multiply matrices together, one for each operation (like rotation or scaling). The order of multiplication matters and may need to be reversed depending on how the matrices are set up (row-major vs. column-major).</p>
 <p>These transformations are applied to both the image and its mask so they stay matched.</p>
-<p>Below is an example of how to do affine transformations using PIL (Python Imaging Library), although the final version used TensorFlow's affine transformation instead.</p>
 <p><strong>Note:</strong> TensorFlow’s method is easier to use but has some limitations. For example, it always rotates around the center and doesn’t allow you to change the pivot point. It also only fills empty areas left by the transformation with a single solid color. Lastly, if the data pipeline involves converting images from PIL to NumPy arrays, TensorFlow doesn’t give a speed advantage, since both still run on the CPU.</p>
 </div>
 </div>
@@ -8977,7 +8973,10 @@ $$</p>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [53]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># custom data generator that enables augmented images </span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="sd">'''</span>
+<span class="sd">custom data generator that enables augmented images for training. When enabled, the training images are temporarily</span>
+<span class="sd">copied and augmentation techniques are applied. After the training concludes, those augmented images are deleted to save disk memory</span>
+<span class="sd">'''</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.keras.utils</span> <span class="kn">import</span> <span class="n">Sequence</span>
 <span class="kn">from</span> <span class="nn">tensorflow.keras.preprocessing.image</span> <span class="kn">import</span> <span class="n">apply_affine_transform</span>
@@ -9089,7 +9088,7 @@ $$</p>
 <div class="jp-InputPrompt jp-InputArea-prompt">In [55]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># data split</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="c1"># data split into training, validation, test</span>
 
 <span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
 
@@ -9386,7 +9385,7 @@ Test images with cells: 199
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1 id="FCN-Model-Implementation">FCN Model Implementation<a class="anchor-link" href="#FCN-Model-Implementation">¶</a></h1><p>This model uses a straightforward architecture with five convolutional layers that gradually reduce the image size. Unlike many advanced image segmentation networks, it doesn’t follow a downsampling-then-upsampling (encoder-decoder) structure, as a lower-resolution output mask is sufficient for the task.</p>
 <p>A custom cross-entropy loss function is used, where the weight of the neuron class is reduced by a factor of 3 to prevent the model from over-predicting neuron regions, especially the yellow-highlighted areas.</p>
-<p>Given the strong class imbalance in the dataset, the primary evaluation metrics are precision and recall for neuron cell detection, rather than overall accuracy.</p>
+<p>Given the strong class imbalance in the dataset, the primary evaluation metrics are precision and recall and dice coefficient for neuron cell detection, rather than overall accuracy.</p>
 </div>
 </div>
 </div>
@@ -9757,7 +9756,7 @@ Epoch 5/5
 <div class="jp-InputPrompt jp-InputArea-prompt">In [133]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>  <span class="c1"># Wider figure for 3 plots side-by-side</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span> 
 
 <span class="c1"># Accuracy</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -10174,7 +10173,7 @@ Epoch 5/5
 <div class="jp-InputPrompt jp-InputArea-prompt">In [183]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>  <span class="c1"># Wider figure for 3 plots side-by-side</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span> 
 
 <span class="c1"># Accuracy</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -10371,11 +10370,11 @@ Epoch 5/5
 
 <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
 
-<span class="c1"># Plot points</span>
+
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">mean_dice_train</span><span class="p">],</span> <span class="s1">'bo'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Mean Training Dice'</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">mean_dice_test</span><span class="p">],</span> <span class="s1">'ro'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Mean Test Dice'</span><span class="p">)</span>
 
-<span class="c1"># Draw line connecting the points</span>
+
 <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">mean_dice_train</span><span class="p">,</span> <span class="n">mean_dice_test</span><span class="p">],</span> <span class="s1">'k--'</span><span class="p">)</span>
 
 <span class="c1"># Calculate difference and plot as text</span>
@@ -10843,8 +10842,9 @@ weighted avg       1.00      0.99      0.99   1415000
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="U-Net-Model-Implementation">U-Net Model Implementation<a class="anchor-link" href="#U-Net-Model-Implementation">¶</a></h1><p>As mentioned in the introduction, models like U-Net are specifically designed for biomedical image segmentation tasks. Unlike traditional fully convolutional networks (FCNs), U-Net introduces skip connections that transfer feature maps directly from the encoder to the corresponding decoder layers. This architecture helps preserve spatial information that is often lost during downsampling and significantly improves boundary localization—an essential aspect when segmenting fine structures like neuronal cells.</p>
-<p>After implementing an FCN trained with a custom class-weighted cross-entropy loss, we decided to extend the experiment by using a U-Net model combined with the Dice loss function. Dice loss is particularly well-suited for handling class imbalance, which is a common challenge in biomedical segmentation where the region of interest (e.g., brain cells) occupies only a small portion of the image. By comparing the performance of both models under similar training conditions, we aim to evaluate which architecture and loss function combination yields the most accurate and reliable segmentation results for our fluorescent neuronal cell dataset.</p>
+<h1 id="U-Net-Model-Implementation">U-Net Model Implementation<a class="anchor-link" href="#U-Net-Model-Implementation">¶</a></h1><p>As mentioned in the introduction, models like U-Net are specifically designed for biomedical image segmentation tasks. Unlike traditional fully convolutional networks (FCNs), U-Net incorporates skip connections that pass feature maps directly from the encoder to the corresponding decoder layers. This architectural design helps retain spatial information that is often lost during downsampling and significantly enhances boundary localization, an essential factor when segmenting fine structures such as neuronal cells.</p>
+<p>After implementing an FCN trained with a custom class-weighted cross-entropy loss, we extended our experiment by introducing a U-Net model combined with the Dice loss function. Dice loss is particularly effective in addressing class imbalance—a common issue in biomedical segmentation, where the region of interest (e.g., brain cells) often comprises only a small portion of the image. Moreover, Dice loss pairs well with the U-Net architecture, enhancing its ability to produce precise segmentations in such scenarios. By comparing the performance of both models under similar training conditions, our goal was to determine which combination of architecture and loss function delivers more accurate and reliable segmentation results on our fluorescent neuronal cell dataset.</p>
+<p>Initially, we built a more complex and robust U-Net model. However, due to extremely long training times (nearly three hours per epoch), we were forced to simplify the model. Unfortunately, we may have gone too far in this simplification, potentially compromising the model’s performance...</p>
 </div>
 </div>
 </div>
@@ -11039,7 +11039,6 @@ weighted avg       1.00      0.99      0.99   1415000
 
 <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">50</span>
 
-<span class="c1"># Generators (same structure used for FCN)</span>
 <span class="n">unet_generator</span> <span class="o">=</span> <span class="n">ImageSequence</span><span class="p">(</span><span class="n">img_train_with_cells</span><span class="p">,</span> <span class="n">mask_train_with_cells</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">finalMaskSize</span><span class="p">)</span>
 <span class="n">val_generator</span> <span class="o">=</span> <span class="n">ImageSequence</span><span class="p">(</span><span class="n">img_val_with_cells</span><span class="p">,</span> <span class="n">mask_val_with_cells</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">finalMaskSize</span><span class="p">)</span>
 
@@ -11245,7 +11244,7 @@ Epoch 5/5
 <div class="jp-InputPrompt jp-InputArea-prompt">In [71]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>  <span class="c1"># Wider figure for 3 plots side-by-side</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span> 
 
 <span class="c1"># Accuracy</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -11646,7 +11645,7 @@ Epoch 5/5
 <div class="cm-editor cm-s-jupyter">
 <div class="highlight hl-ipython3"><pre><span></span><span class="c1"># plots last training</span>
 
-<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>  <span class="c1"># Wider figure for 3 side-by-side plots</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span> 
 
 <span class="c1"># Accuracy</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -11704,7 +11703,7 @@ Epoch 5/5
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p><strong>Accuracy</strong>: When you introduce images without cells, the background becomes the dominant class. A model can achieve very high accuracy simply by predicting "background" for almost all pixels. This high accuracy can be misleading if our primary interest is segmenting the foreground (cells).</p>
+<p><strong>Accuracy</strong>: When we introduce images without cells, the background becomes the dominant class. A model can achieve very high accuracy simply by predicting "background" for almost all pixels. This high accuracy can be misleading if our primary interest is segmenting the foreground (cells).</p>
 <p><strong>Loss</strong>: The high and fluctuating loss values are strong indicators of a problem. The increase in loss, especially the validation loss, directly contradicts effective learning.</p>
 <p><strong>Dice coeff</strong>: The Dice coefficient is the most appropriate metric for imbalance segmentation tasks. A low Dice coefficient, particularly a validation Dice coefficient that is low and erratic, strongly indicates that the model is failing to accurately segment the foreground (cells).</p>
 <p>Based on the plots and the visual examples, the "last training" session for U-Net model was unsuccessful in learning to segment cells, despite achieving high accuracy. This is primarily due to the introduction of a large number of images without cells, which created an extreme class imbalance. The model has learned a "null" prediction strategy, overwhelmingly predicting background for all pixels to minimize overall loss, thus effectively ignoring and failing to detect any foreground cells. This is clearly evidenced by the very low and erratic Dice coefficient, the increasing loss values, and the visual confirmation of the model predicting solid background even when cells are present in the input image.</p>
@@ -11733,8 +11732,8 @@ Epoch 5/5
 <div class="highlight hl-ipython3"><pre><span></span><span class="c1"># Convert list to NumPy array</span>
 <span class="n">img_test_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">img_test</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mf">255.0</span>
 
-<span class="c1"># Ensure correct shape (N, 400, 400, 3)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">img_test_array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># should be (num_samples, 400, 400, 3)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">img_test_array</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> 
 
 <span class="c1"># Predict</span>
 <span class="n">preds_unet</span> <span class="o">=</span> <span class="n">unet_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">img_test_array</span><span class="p">)</span>
@@ -11840,7 +11839,7 @@ Epoch 5/5
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <p>The U-Net model, based on this evaluation, is currently performing very poorly at image segmentation, achieving very low Dice coefficients on both training and test sets. This severe degradation in performance, especially when contrasted with the promising results of our initial U-Net training (where Dice coefficients were much higher), strongly points to a fundamental issue introduced in subsequent training runs, likely the one where we began using "full images, not only those with cells."</p>
-<p>As discussed previously, including a vast number of images without cells introduces an extreme class imbalance, causing the U-Net model to become biased towards predicting the dominant "Non-Cells" (background) class. The previous visual examples of the U-Net predicting a solid purple (background) mask even when cells were present directly supports this conclusion. The low Dice coefficient (0.12-0.17) is a direct consequence of this "null" prediction strategy, where the model fails to capture the minority foreground class.</p>
+<p>As discussed previously, including a vast number of images without cells introduces an extreme class imbalance, causing the U-Net model to become biased towards predicting the dominant "Non-Cells" (background) class. The previous visual examples of the U-Net predicting a solid purple (background) mask even when cells were present directly supports this conclusion. The low Dice coefficient is a direct consequence of this "null" prediction strategy, where the model fails to capture the minority foreground class.</p>
 </div>
 </div>
 </div>
@@ -12042,7 +12041,7 @@ Epoch 5/5
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>same stuff...</p>
+<p>same showing of the awful results of U-net model.</p>
 </div>
 </div>
 </div>
@@ -12718,7 +12717,7 @@ weighted avg       0.99      0.99      0.99    497500
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
 <h1 id="Application-of-the-trained-models-to-an-image">Application of the trained models to an image<a class="anchor-link" href="#Application-of-the-trained-models-to-an-image">¶</a></h1><p>With the trained model, full-size images can now be processed. Each image is first split into 400x400 pixel sub-images, which are passed through the model. The predicted masks are then resized back to 400x400 and stitched together into one full mask.</p>
-<p>In areas where the sub-images overlap, a "minimum" blending method is used—this keeps the lower pixel value in overlapping regions. This gives a more cautious prediction, which is helpful given the model’s slight tendency for false positives.</p>
+<p>In areas where the sub-images overlap, a "minimum" blending method is used, this keeps the lower pixel value in overlapping regions. This gives a more cautious prediction, which is helpful given the model’s slight tendency for false positives.</p>
 <p>An added benefit of this sub-image approach is that the model can be used on images of any size, as long as the cell sizes are similar to those seen during training.</p>
 </div>
 </div>
